@@ -1,4 +1,3 @@
-// src/components/theme-toggle.tsx
 import { useEffect, useMemo } from "react";
 import { useLocalStorage } from "@/lib/hooks";
 import ResetButton from "./reset-button";

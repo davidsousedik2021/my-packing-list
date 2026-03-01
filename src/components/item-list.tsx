@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "@/lib/hooks";
 import ResetButton from "./reset-button";
+import ItemRow from "./item-row";
 import type { Item } from "@/types";
 import { SEED } from "@/seed";
 
@@ -19,9 +20,13 @@ const sortItems = (items: Item[], sortBy: SortKey) => {
   }
 };
 
-const makeId = () => Math.random().toString(36).slice(2, 9);
+// Prefer crypto.randomUUID when available, fallback to Math.random
+const makeId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 9);
 
-// ✅ runtime validator for Item[]
+// runtime validator for Item[]
 const isItemArray = (v: unknown): v is Item[] =>
   Array.isArray(v) &&
   v.every(
@@ -38,7 +43,7 @@ export default function ItemList({
 }: {
   onStatsChange?: (packed: number, total: number) => void;
 }) {
-  // ✅ IMPORTANT: keep version so old values don’t break the app
+  // keep version so old values don’t break the app
   const [items, setItems, clearItems] = useLocalStorage<Item[]>(
     "items",
     () => SEED,
@@ -57,25 +62,39 @@ export default function ItemList({
     onStatsChange?.(packedCount, total);
   }, [packedCount, total, onStatsChange]);
 
-  const addItem = () => {
+  const addItem = useCallback(() => {
     const label = draft.trim();
     if (!label) return;
 
     setItems((prev) => [{ id: makeId(), label, packed: false }, ...prev]);
     setDraft("");
     inputRef.current?.focus();
-  };
+  }, [draft, setItems]);
 
-  const togglePacked = (id: string) =>
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, packed: !i.packed } : i)));
+  // ✅ useCallback: stable function references for memoized ItemRow
+  const togglePacked = useCallback(
+    (id: string) => {
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, packed: !i.packed } : i)));
+    },
+    [setItems]
+  );
 
-  const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = useCallback(
+    (id: string) => {
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    },
+    [setItems]
+  );
 
-  const markAll = (packed: boolean) =>
-    setItems((prev) => prev.map((i) => (i.packed === packed ? i : { ...i, packed })));
+  const markAll = useCallback(
+    (packed: boolean) => {
+      setItems((prev) => prev.map((i) => (i.packed === packed ? i : { ...i, packed })));
+    },
+    [setItems]
+  );
 
-  const removeAll = () => setItems([]);
-  const resetToInitial = () => clearItems();
+  const removeAll = useCallback(() => setItems([]), [setItems]);
+  const resetToInitial = useCallback(() => clearItems(), [clearItems]);
 
   return (
     <>
@@ -103,28 +122,12 @@ export default function ItemList({
 
         <ul className="list">
           {sorted.map((item) => (
-            <li key={item.id} className={`row ${item.packed ? "row--checked" : ""}`}>
-              <div className="row__left">
-                <input
-                  className="check"
-                  type="checkbox"
-                  checked={item.packed}
-                  onChange={() => togglePacked(item.id)}
-                  aria-label={item.packed ? "Mark as incomplete" : "Mark as complete"}
-                />
-                <span className="label">{item.label}</span>
-              </div>
-
-              <button
-                type="button"
-                className="remove"
-                title="Remove"
-                onClick={() => removeItem(item.id)}
-                aria-label={`Remove ${item.label}`}
-              >
-                ✕
-              </button>
-            </li>
+            <ItemRow
+              key={item.id}
+              item={item}
+              onToggle={togglePacked}
+              onRemove={removeItem}
+            />
           ))}
 
           {sorted.length === 0 && (
@@ -146,7 +149,9 @@ export default function ItemList({
               className="input"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addItem()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.repeat) addItem();
+              }}
               placeholder="Type an item…"
               aria-label="New item"
             />

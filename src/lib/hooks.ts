@@ -59,13 +59,13 @@ export function useLocalStorage<T>(
         value = deserialize(raw) as unknown;
       }
 
-      // ✅ Runtime validation (if provided)
+      // Runtime validation (if provided)
       if (validate && !validate(value)) {
         window.localStorage.removeItem(k);
         return getDefault();
       }
 
-      // ✅ Generic-safe array guard: if default is array, value must be array
+      // Generic-safe array guard: if default is array, value must be array
       const def = getDefault() as unknown;
       if (Array.isArray(def) && !Array.isArray(value)) {
         window.localStorage.removeItem(k);

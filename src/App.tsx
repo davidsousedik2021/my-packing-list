@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ItemList from "@/components/item-list";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function App() {
   const [stats, setStats] = useState({ packed: 0, total: 0 });
@@ -9,7 +10,9 @@ export default function App() {
       <div className="window">
         <div className="window__top">
           <div className="dots" aria-hidden="true">
-            <i></i><i></i><i></i>
+            <i></i>
+            <i></i>
+            <i></i>
           </div>
 
           <div />
@@ -20,6 +23,7 @@ export default function App() {
         </div>
 
         <div className="window__body">
+          <ThemeToggle />
           <ItemList onStatsChange={(packed, total) => setStats({ packed, total })} />
         </div>
       </div>

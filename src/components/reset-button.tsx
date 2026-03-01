@@ -6,11 +6,7 @@ type ResetButtonProps = {
   className?: string;
 };
 
-export default function ResetButton({
-  onReset,
-  children,
-  className,
-}: ResetButtonProps) {
+export default function ResetButton({ onReset, children, className }: ResetButtonProps) {
   return (
     <button type="button" onClick={onReset} className={className ?? "btn btn-primary"}>
       {children ?? "Reset"}
